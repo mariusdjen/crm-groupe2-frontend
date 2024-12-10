@@ -1,0 +1,51 @@
+# Fichiers générés par l'environnement Python
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+
+# Fichiers de virtualenv
+env/
+venv/
+.venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Fichiers de configuration et sensibles
+*.env
+*.env.*
+
+# Dépendances et distributions Python
+pip-log.txt
+pip-delete-this-directory.txt
+*.egg-info/
+dist/
+build/
+
+# Fichiers spécifiques à Streamlit
+.streamlit/
+
+# Fichiers spécifiques aux IDE
+.vscode/
+.idea/
+*.sublime-workspace
+*.sublime-project
+
+# Journaux et fichiers temporaires
+*.log
+*.tmp
+*.temp
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Docker
+docker-compose.override.yml
+
+# Fichiers système
+*.bak
+*.old
+*.orig
+*.rej
