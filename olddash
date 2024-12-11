@@ -1,0 +1,136 @@
+
+#############Graphique
+
+#1 - Vistualisation des ventes par  seteurs  par mois 
+#Le titre sera Visualisation de ventes là on verra par secteur et par mois
+
+#2 Visualisation des revenus  par  seteurs  et par mois 
+
+#3- Visualisation des ventes par  Statut
+
+#
+# 1. Visualisation des ventes par secteur et par mois
+# Titre
+st.html('<h2 style="color: #C1F17E;">Visualisation des Ventes par Secteur et par Mois</h2>')
+
+# Créer les colonnes pour mettre les graphiques côte à côte
+col1, col2 = st.columns(2)
+
+with col1:
+    # Graphique des ventes par secteur
+    st.html('<h4 style="color: #C1F17E;">VENTES PAR SECTEUR</h4>')
+
+    # Créer un DataFrame à partir des données sur les produits par secteur
+    sector_data = pd.DataFrame({
+        "Secteur": list(kpi_data["products_per_sector"].keys()),
+        "Nombre de Produits": list(kpi_data["products_per_sector"].values()),
+    })
+
+    # Création du graphique en barres pour les ventes par secteur
+    fig_sector = px.bar(sector_data, x="Secteur", y="Nombre de Produits", title="Nombre de Produits par Secteur",
+                        color="Secteur", color_continuous_scale='Viridis')
+    fig_sector.update_layout(xaxis_title="Secteur", yaxis_title="Nombre de Produits",
+                            template="plotly_dark", plot_bgcolor="#2b2b2b")
+    st.plotly_chart(fig_sector, use_container_width=True)
+
+with col2:
+    # Graphique des revenus par secteur
+    st.html('<h3 style="color: #C1F17E;">Revenu par Secteur</h3>')
+
+    # Créer un DataFrame pour les revenus par secteur
+    revenue_sector_data = pd.DataFrame({
+        "Secteur": list(kpi_data["total_revenue_per_sector"].keys()),
+        "Revenu Total": list(kpi_data["total_revenue_per_sector"].values()),
+    })
+
+    # Création du graphique en camembert pour la répartition des revenus par secteur
+    fig_revenue_sector = px.pie(revenue_sector_data, names="Secteur", values="Revenu Total",
+                                title="Répartition des Revenus par Secteur",
+                                color_discrete_sequence=px.colors.sequential.Plasma)
+    fig_revenue_sector.update_layout(template="plotly_dark")
+    st.plotly_chart(fig_revenue_sector, use_container_width=True)
+
+# 2. Visualisation des revenus par secteur et par mois
+# Titre de la section
+st.html('<h2 style="color: #C1F17E;">Répartition des Ventes et Revenus par Mois</h2>')
+
+# Vérification que les données des revenus par mois sont présentes
+if "revenue_per_month" in kpi_data and "sales_per_month" in kpi_data:
+    # Création du DataFrame pour les revenus par mois
+    revenue_month_data = pd.DataFrame({
+        "Mois": list(kpi_data["revenue_per_month"].keys()),
+        "Revenu Total": list(kpi_data["revenue_per_month"].values())
+    })
+
+    # Création du DataFrame pour les ventes par mois
+    sales_month_data = pd.DataFrame({
+        "Mois": list(kpi_data["sales_per_month"].keys()),
+        "Ventes Totales": list(kpi_data["sales_per_month"].values())
+    })
+
+    # Utilisation de st.columns pour afficher les graphiques côte à côte
+    col1, col2 = st.columns(2)
+
+    # Graphique des revenus par mois
+    with col1:
+        fig_revenue_month = px.bar(revenue_month_data, x="Mois", y="Revenu Total",
+                                   title="Répartition des Revenus par Mois",
+                                   color="Revenu Total", color_continuous_scale=px.colors.sequential.Plasma)
+        fig_revenue_month.update_layout(template="plotly_dark", xaxis_title="Mois", yaxis_title="Revenu Total (€)")
+        fig_revenue_month.update_yaxes(tickprefix="€", tickformat=".2f")
+        st.plotly_chart(fig_revenue_month, use_container_width=True)
+
+    # Graphique des ventes par mois
+    with col2:
+        fig_sales_month = px.bar(sales_month_data, x="Mois", y="Ventes Totales",
+                                 title="Répartition du nombre de Ventes par Mois",
+                                 color="Ventes Totales", color_continuous_scale=px.colors.sequential.Viridis)
+        fig_sales_month.update_layout(template="plotly_dark", xaxis_title="Mois", yaxis_title="Nombre de Ventes")
+        st.plotly_chart(fig_sales_month, use_container_width=True)
+
+else:
+    st.error("Les données des revenus et des ventes par mois ne sont pas disponibles.")
+
+# 3. Visualisation des ventes et revenus par statut
+# Titre de la section
+st.html('<h2 style="color: #C1F17E;">Répartition des Ventes et Revenus par Statut</h2>')
+
+# Création du DataFrame pour les ventes par statut (Won, Prospecting, Engaging, Lost)
+sales_status_data = pd.DataFrame({
+    "Statut": ["Finalisées", "Prospection", "Engagement", "Perdues"],
+    "Ventes": [kpi_data["total_sales_won"], kpi_data["total_sales_prospecting"], kpi_data["total_sales_engaging"], kpi_data["total_sales_lost"]],
+})
+
+# Graphique des ventes par statut
+fig_sales_status = px.bar(sales_status_data, x="Statut", y="Ventes", title="Ventes par Statut",
+                          color="Statut", color_discrete_sequence=px.colors.sequential.Viridis)
+fig_sales_status.update_layout(xaxis_title="Statut", yaxis_title="Nombre de Ventes",
+                               template="plotly_dark", plot_bgcolor="#2b2b2b")
+
+# Création du DataFrame pour les revenus par statut
+revenue_status_data = pd.DataFrame({
+    "Statut": ["Finalisées", "Prospection", "Engagement", "Perdues"],
+    "Revenu Total": [kpi_data["total_won_revenue"], kpi_data["total_prospecting_revenue"],
+                     kpi_data["total_engaging_revenue"], kpi_data["total_lost_revenue"]],
+})
+
+# Graphique des revenus par statut
+fig_revenue_status = px.pie(revenue_status_data, names="Statut", values="Revenu Total",
+                            title="Répartition des Revenus par Statut",
+                            color_discrete_sequence=px.colors.sequential.Plasma)
+fig_revenue_status.update_layout(template="plotly_dark")
+
+# Utilisation de st.columns pour afficher les graphiques côte à côte
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig_sales_status, use_container_width=True)
+
+with col2:
+    st.plotly_chart(fig_revenue_status, use_container_width=True)
+
+
+st.write("\n")
+#st.success("Dashboard généré avec succès ! 🎉")
+
+

@@ -1,0 +1,202 @@
+import os
+import streamlit as st
+import requests
+import pandas as pd
+import plotly.express as px
+from pprint import pprint
+from dotenv import load_dotenv
+
+#load doteenv
+load_dotenv()
+# URL de l'API FastAPI
+API_URL = os.getenv("API_URL")
+# Titre de la page
+st.set_page_config(page_title="Dashboard Ventes", page_icon="📊", layout="wide")
+st.title("📊 Dashboard Ventes")
+
+# Chargement des données
+with st.spinner("Chargement des données en cours..."):
+    try:
+        response = requests.get(f"{API_URL}getAllProductsKpis")
+        response.raise_for_status()
+        kpi_data = response.json()
+    except requests.RequestException as e:
+        st.error(f"Erreur lors du chargement des données : {e}")
+        st.stop()
+
+
+
+
+# Affichage des KPIs principaux dans une disposition plus propre
+st.markdown("<hr>", unsafe_allow_html=True)
+
+with st.container():
+    col1, col2, col3,col4 = st.columns(4)
+    col1.metric("💰 Revenu des Ventes finalisées", f"{kpi_data['total_won_revenue']:.2f} €", help="Revenu des ventes en phase 'won' ")
+    col2.metric("💸 Revenu des Ventes discussion ", f"{kpi_data['total_engaging_revenue']:.2f} €", help="Revenu des ventes en phase 'engaging' ")
+    col3.metric("💡 Revenu Moyen par Produit", f"{kpi_data['avg_revenue_per_product']:.2f} €", help="Revenu moyen par produit")
+    col4.metric("💔 Revenu des Ventes Perdues", f"{kpi_data['total_lost_revenue']:.2f} €", help="Revenu des ventes perdues")
+# Séparer les autres KPIs
+st.markdown("<hr>", unsafe_allow_html=True)
+with st.container():
+    col1, col2, col3,col4= st.columns(4)
+    col1.metric("🎯 Nombre d'Opportunités de vente à Suivre", kpi_data["total_sales_prospecting"], help="Ventes en phase 'Prospecting'")
+    col2.metric("🚀 Nombre de ventes en discussion", kpi_data["total_sales_engaging"], help="Ventes en phase Engagement")
+    col3.metric("💔 Nombre de ventes Annulées", kpi_data["total_sales_lost"], help="Ventes en phas 'lost'")
+    col4.metric("🎉 Nombre de ventes finalisées", kpi_data["total_sales_won"], help="Ventes en phas 'won'")
+
+st.markdown("<hr>", unsafe_allow_html=True)
+with st.container():
+    # Création de 2 colonnes
+    col1, col2 = st.columns([1, 3])  # Répartition des colonnes avec un peu plus d'espace pour col2
+    
+    # Affichage du taux d'engagement
+    col1.metric("💡 Taux d'Engagement", f"{kpi_data['engagement_rate'] * 100:.2f}%", help="Taux d'engagement entre les phases Prospecting et Engaging")
+    
+    # Logique pour donner un conseil basé sur le taux d'engagement
+    if kpi_data['engagement_rate'] >= 0.5:
+        # Affichage dans st.success pour un taux élevé
+        col2.success("""
+            🎉 Bravo ! Votre taux d'engagement est élevé. Cela signifie que vos actions de prospection et d'engagement génèrent un fort intérêt. Continuez sur cette voie pour maintenir l'engagement des prospects.
+        """)
+    elif kpi_data['engagement_rate'] >= 0.2:
+        # Affichage dans st.warning pour un taux modéré
+        col2.warning("""
+            ⚠️ Votre taux d'engagement est moyen. Cela peut indiquer un manque d'intérêt ou de réactivité de la part de vos prospects. Essayez d'ajuster vos actions pour les rendre plus attrayantes.
+        """)
+    else:
+        # Affichage dans st.warning pour un taux faible
+        col2.warning("""
+            ⚠️ Attention, votre taux d'engagement est faible. Il est essentiel de revoir vos stratégies de prospection et d'engagement pour susciter davantage d'intérêt auprès de vos prospects.
+        """)
+
+
+
+
+st.empty()
+
+
+# 2. Visualisation des revenus par secteur et par mois
+# Titre de la section
+st.html('<h3 style="color: #C1F17E;">Répartition  des Revenus(en €) et du nombre de Ventes  par Mois </h3>')
+
+# Vérification que les données des revenus par mois sont présentes
+if "revenue_per_month" in kpi_data and "sales_per_month" in kpi_data:
+    # Création du DataFrame pour les revenus par mois
+    revenue_month_data = pd.DataFrame({
+        "Mois": list(kpi_data["revenue_per_month"].keys()),
+        "Revenu Total": list(kpi_data["revenue_per_month"].values())
+    })
+
+    # Création du DataFrame pour les ventes par mois
+    sales_month_data = pd.DataFrame({
+        "Mois": list(kpi_data["sales_per_month"].keys()),
+        "Ventes Totales": list(kpi_data["sales_per_month"].values())
+    })
+
+    # Utilisation de st.columns pour afficher les graphiques côte à côte
+    col1, col2 = st.columns(2)
+
+    # Graphique des revenus par mois
+    with col1:
+        fig_revenue_month = px.bar(revenue_month_data, x="Mois", y="Revenu Total",
+                                   title="Revenus par Mois",
+                                   color="Revenu Total", color_continuous_scale=px.colors.sequential.Plasma)
+        fig_revenue_month.update_layout(template="plotly_dark", xaxis_title="Mois", yaxis_title="Revenu Total (€)")
+        fig_revenue_month.update_yaxes(tickprefix="€", tickformat=".2f")
+        st.plotly_chart(fig_revenue_month, use_container_width=True, key="revenue_month_chart")
+
+    # Graphique des ventes par mois
+    with col2:
+        fig_sales_month = px.bar(sales_month_data, x="Mois", y="Ventes Totales",
+                                 title="Nombre de Ventes par Mois",
+                                 color="Ventes Totales", color_continuous_scale=px.colors.sequential.Viridis)
+        fig_sales_month.update_layout(template="plotly_dark", xaxis_title="Mois", yaxis_title="Nombre de Ventes")
+        st.plotly_chart(fig_sales_month, use_container_width=True, key="sales_month_chart")
+
+else:
+    st.error("Les données des revenus et des ventes par mois ne sont pas disponibles.")
+
+
+
+
+
+
+
+
+
+# 1. Visualisation des ventes par secteur et par mois
+# Titre
+st.html('<h3 style="color: #C1F17E;">Visualisation du nombre de produits vendus et des revenus par secteur.  </h3>')
+
+# Créer les colonnes pour mettre les graphiques côte à côte
+col1, col2 = st.columns(2)
+
+with col1:
+
+    # Créer un DataFrame à partir des données sur les produits par secteur
+    sector_data = pd.DataFrame({
+        "Secteur": list(kpi_data["products_per_sector"].keys()),
+        "Nombre de Produits": list(kpi_data["products_per_sector"].values()),
+    })
+
+    # Création du graphique en barres pour les ventes par secteur
+    fig_sector = px.bar(sector_data, x="Secteur", y="Nombre de Produits", title="Nombre de produits vendus par secteur",
+                        color="Secteur", color_continuous_scale='Viridis')
+    fig_sector.update_layout(xaxis_title="Secteur", yaxis_title="Nombre de Produits",
+                            template="plotly_dark", plot_bgcolor="#2b2b2b")
+    st.plotly_chart(fig_sector, use_container_width=True, key="sector_chart")
+
+with col2:
+
+    # Créer un DataFrame pour les revenus par secteur
+    revenue_sector_data = pd.DataFrame({
+        "Secteur": list(kpi_data["total_revenue_per_sector"].keys()),
+        "Revenu Total": list(kpi_data["total_revenue_per_sector"].values()),
+    })
+
+    # Création du graphique en camembert pour la répartition des revenus par secteur
+    fig_revenue_sector = px.pie(revenue_sector_data, names="Secteur", values="Revenu Total",
+                                title="Revenus par Secteur(en €)",
+                                color_discrete_sequence=px.colors.sequential.Plasma)
+    fig_revenue_sector.update_layout(template="plotly_dark")
+    st.plotly_chart(fig_revenue_sector, use_container_width=True, key="revenue_sector_chart")
+
+
+# 3. Visualisation des ventes et revenus par statut
+# Titre de la section
+st.html('<h2 style="color: #C1F17E;">Répartition des Ventes et Revenus par Statut de transaction</h2>')
+
+# Création du DataFrame pour les ventes par statut (Won, Prospecting, Engaging, Lost)
+sales_status_data = pd.DataFrame({
+    "Statut": ["Finalisées", "Prospection", "Engagement", "Perdues"],
+    "Ventes": [kpi_data["total_sales_won"], kpi_data["total_sales_prospecting"], kpi_data["total_sales_engaging"], kpi_data["total_sales_lost"]],
+})
+
+# Graphique des ventes par statut
+fig_sales_status = px.bar(sales_status_data, x="Statut", y="Ventes", title="Total des ventes par statut de la transaction",
+                          color="Statut", color_discrete_sequence=px.colors.sequential.Viridis)
+fig_sales_status.update_layout(xaxis_title="Statut", yaxis_title="Nombre de Ventes",
+                               template="plotly_dark", plot_bgcolor="#2b2b2b")
+
+# Création du DataFrame pour les revenus par statut
+revenue_status_data = pd.DataFrame({
+    "Statut": ["Finalisées", "Prospection", "Engagement", "Perdues"],
+    "Revenu Total": [kpi_data["total_won_revenue"], kpi_data["total_prospecting_revenue"],
+                     kpi_data["total_engaging_revenue"], kpi_data["total_lost_revenue"]],
+})
+
+# Graphique des revenus par statut
+fig_revenue_status = px.pie(revenue_status_data, names="Statut", values="Revenu Total",
+                            title="Total des revenus par statut de transaction",
+                            color_discrete_sequence=px.colors.sequential.Plasma)
+fig_revenue_status.update_layout(template="plotly_dark")
+
+# Utilisation de st.columns pour afficher les graphiques côte à côte
+col1, col2 = st.columns(2)
+
+with col1:
+    st.plotly_chart(fig_sales_status, use_container_width=True, key="sales_status_chart")
+
+with col2:
+    st.plotly_chart(fig_revenue_status, use_container_width=True, key="revenue_status_chart")
