@@ -14,7 +14,7 @@ API_URL = os.getenv("API_URL")
 
 # Configuration de la page
 st.set_page_config(page_title="Dashboard Ventes", page_icon="📊", layout="wide")
-st.title("📊 Dashboard  Performances Ventes")
+st.title("📊 Dashboard Ventes")
 
 # Fonction pour charger les données globales
 def load_global_data():
@@ -27,99 +27,48 @@ def load_global_data():
             st.error(f"Erreur lors du chargement des données : {e}")
             return None
 
-# Fonction pour obtenir la liste des produits
-def get_products():
-    try:
-        response = requests.get(f"{API_URL}/getAllProducts")
-        response.raise_for_status()
-        data = response.json()
-        products = [product['fields']['product'] for product in data]
-        return products
-    except requests.RequestException as e:
-        st.error(f"Erreur lors du chargement des produits : {e}")
-        return []
-
-# Fonction pour obtenir les KPIs d'un produit spécifique
-def get_product_kpis(product_name):
-    try:
-        response = requests.get(f"{API_URL}/getProductKpis/{product_name}")
-        response.raise_for_status()
-        data = response.json()
-        if "message" in data:
-            st.error(data["message"])
-            return None
-        return data
-    except requests.RequestException as e:
-        st.error(f"Erreur lors du chargement des données pour le produit '{product_name}': {e}")
-        return None
-
 # Fonction pour afficher les KPIs globaux
 def display_global_kpis(kpi_data):
-    st.markdown("<h2 style='text-align: center; color: #00ED9A;'>Vue d'ensemble des performances</h2>", unsafe_allow_html=True)
-    
-    # Première ligne de métriques
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("💰 Revenu Total", f"{kpi_data['total_revenue']:,.2f} €")
-    col2.metric("🎯 Ventes conclues ", kpi_data["total_sales_won"])
-    col3.metric("💼 Ventes en cours", kpi_data["total_sales_engaging"])
-    col4.metric("❌ Ventes Perdues", kpi_data["total_sales_lost"])
+    st.markdown("<hr>", unsafe_allow_html=True)
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("💰 Revenu des Ventes finalisées", f"{kpi_data['total_won_revenue']:.2f} €", help="Revenu des ventes en phase 'won' ")
+        col2.metric("💸 Revenu des Ventes discussion ", f"{kpi_data['total_engaging_revenue']:.2f} €", help="Revenu des ventes en phase 'engaging' ")
+        col3.metric("💡 Revenu Moyen par Produit", f"{kpi_data['avg_revenue_per_product']:.2f} €", help="Revenu moyen par produit")
+        col4.metric("💔 Revenu des Ventes Perdues", f"{kpi_data['total_lost_revenue']:.2f} €", help="Revenu des ventes perdues")
 
-    # Deuxième ligne de métriques
-    col1, col2, col3, col4 = st.columns(4)
-    col1.metric("💡 Revenu Moyen par Produit", f"{kpi_data['avg_revenue_per_product']:,.2f} €")
-    col2.metric("🚀 Taux d'Engagement", f"{kpi_data['engagement_rate']*100:.2f}%")
-    col3.metric("📊 Revenus Gagnés", f"{kpi_data['total_won_revenue']:,.2f} €")
-    col4.metric("📉 Revenus Perdus", f"{kpi_data['total_lost_revenue']:,.2f} €")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    with st.container():
+        col1, col2, col3, col4 = st.columns(4)
+        col1.metric("🎯 Nombre d'Opportunités de vente à Suivre", kpi_data["total_sales_prospecting"], help="Ventes en phase 'Prospecting'")
+        col2.metric("🚀 Nombre de ventes en discussion", kpi_data["total_sales_engaging"], help="Ventes en phase Engagement")
+        col3.metric("💔 Nombre de ventes Annulées", kpi_data["total_sales_lost"], help="Ventes en phas 'lost'")
+        col4.metric("🎉 Nombre de ventes finalisées", kpi_data["total_sales_won"], help="Ventes en phas 'won'")
 
-    # Graphiques
-    col1, col2 = st.columns(2)
-    
-    with col1:
-        # Graphique en anneau pour la répartition des ventes
-        fig_sales = go.Figure(data=[go.Pie(
-            labels=['Gagnées', 'En cours', 'Perdues', 'Prospection'], 
-            values=[kpi_data['total_sales_won'], kpi_data['total_sales_engaging'], 
-                    kpi_data['total_sales_lost'], kpi_data['total_sales_prospecting']],
-            hole=.3,
-            marker_colors=['#00ED9A', '#FFA500', '#FF6347', '#4169E1']
-        )])
-        fig_sales.update_layout(title_text="Répartition des Ventes")
-        st.plotly_chart(fig_sales, use_container_width=True)
-
-    with col2:
-        # Graphique en barres pour les revenus par secteur
-        sector_revenue = pd.DataFrame(list(kpi_data['total_revenue_per_sector'].items()), 
-                                      columns=['Secteur', 'Revenu'])
-        sector_revenue = sector_revenue.sort_values('Revenu', ascending=False).head(5)
-        fig_sector = px.bar(sector_revenue, x='Secteur', y='Revenu', 
-                            title="Top 5 des Revenus par Secteur",
-                            color='Revenu', color_continuous_scale=px.colors.sequential.Viridis)
-        st.plotly_chart(fig_sector, use_container_width=True)
-
-    # Analyse et recommandations
-    st.markdown("### 📊 Analyse et Recommandations")
-    
-    engagement_rate = kpi_data['engagement_rate']
-    if engagement_rate >= 0.5:
-        st.success(f"🎉 Excellent taux d'engagement de {engagement_rate*100:.2f}% ! Continuez vos stratégies actuelles.")
-    elif engagement_rate >= 0.3:
-        st.warning(f"⚠️ Taux d'engagement moyen de {engagement_rate*100:.2f}%. Cherchez à améliorer vos techniques d'engagement client.")
-    else:
-        st.error(f"🚨 Faible taux d'engagement de {engagement_rate*100:.2f}%. Une révision urgente de vos stratégies d'engagement est nécessaire.")
-
-    win_rate = kpi_data['total_sales_won'] / (kpi_data['total_sales_won'] + kpi_data['total_sales_lost'])
-    if win_rate >= 0.7:
-        st.success(f"🏆 Excellent taux de réussite des ventes de {win_rate*100:.2f}% ! Votre équipe performe très bien.")
-    elif win_rate >= 0.5:
-        st.info(f"ℹ️ Taux de réussite des ventes correct de {win_rate*100:.2f}%. Il y a encore de la marge d'amélioration.")
-    else:
-        st.warning(f"⚠️ Faible taux de réussite des ventes de {win_rate*100:.2f}%. Formez votre équipe pour améliorer ce taux.")
-
-    top_sector = max(kpi_data['total_revenue_per_sector'], key=kpi_data['total_revenue_per_sector'].get)
-    st.info(f"💡 Le secteur le plus performant est '{top_sector}'. Concentrez-vous sur ce secteur pour maximiser vos revenus.")
-
-    if kpi_data['total_sales_prospecting'] > 0:
-        st.info(f"🎯 Vous avez {kpi_data['total_sales_prospecting']} opportunités en phase de prospection. Assurez-vous de les convertir en engagements.")
+    st.markdown("<hr>", unsafe_allow_html=True)
+    with st.container():
+        # Création de 2 colonnes
+        col1, col2 = st.columns([1, 3])  # Répartition des colonnes avec un peu plus d'espace pour col2
+        
+        # Affichage du taux d'engagement
+        col1.metric("💡 Taux d'Engagement", f"{kpi_data['engagement_rate'] * 100:.2f}%", help="Taux d'engagement entre les phases Prospecting et Engaging")
+        
+        # Logique pour donner un conseil basé sur le taux d'engagement
+        if kpi_data['engagement_rate'] >= 0.5:
+            # Affichage dans st.success pour un taux élevé
+            col2.success("""
+                🎉 Bravo ! Votre taux d'engagement est élevé. Cela signifie que vos actions de prospection et d'engagement génèrent un fort intérêt. Continuez sur cette voie pour maintenir l'engagement des prospects.
+            """)
+        elif kpi_data['engagement_rate'] >= 0.2:
+            # Affichage dans st.warning pour un taux modéré
+            col2.warning("""
+                ⚠️ Votre taux d'engagement est moyen. Cela peut indiquer un manque d'intérêt ou de réactivité de la part de vos prospects. Essayez d'ajuster vos actions pour les rendre plus attrayantes.
+            """)
+        else:
+            # Affichage dans st.warning pour un taux faible
+            col2.warning("""
+                ⚠️ Attention, votre taux d'engagement est faible. Il est essentiel de revoir vos stratégies de prospection et d'engagement pour susciter davantage d'intérêt auprès de vos prospects.
+            """)
 
     st.empty()
 
@@ -186,7 +135,34 @@ def display_global_charts(kpi_data):
         fig_revenue_sector.update_layout(template="plotly_dark")
         st.plotly_chart(fig_revenue_sector, use_container_width=True, key="revenue_sector_chart")
 
+# Fonction pour obtenir la liste des produits
+def get_products():
+    try:
+        response = requests.get(f"{API_URL}/getAllProducts")
+        response.raise_for_status()
+        data = response.json()
+        products = [product['fields']['product'] for product in data]
+        return products
+    except requests.RequestException as e:
+        st.error(f"Erreur lors du chargement des produits : {e}")
+        return []
+
+# Fonction pour obtenir les KPIs d'un produit spécifique
+def get_product_kpis(product_name):
+    try:
+        response = requests.get(f"{API_URL}/getProductKpis/{product_name}")
+        response.raise_for_status()
+        data = response.json()
+        if "message" in data:
+            st.error(data["message"])
+            return None
+        return data
+    except requests.RequestException as e:
+        st.error(f"Erreur lors du chargement des données pour le produit '{product_name}': {e}")
+        return None
+
 # Fonction pour afficher les KPIs d'un produit spécifique
+
 def display_product_kpis(product_name):
     kpis = get_product_kpis(product_name)
     if kpis:
@@ -197,7 +173,7 @@ def display_product_kpis(product_name):
         with col1:
             st.metric("Total des transactions", kpis['total_deals'])
         with col2:
-            st.metric("Ventes conclues ", kpis['total_sales_won'])
+            st.metric("Ventes finalisées", kpis['total_sales_won'])
         with col3:
             st.metric("Ventes perdues", kpis['total_sales_lost'])
         with col4:
@@ -237,14 +213,14 @@ def display_product_kpis(product_name):
         col1, col2 = st.columns(2)
         with col1:
             fig_funnel = go.Figure(go.Funnel(
-                y = ['Total des transactions', 'Ventes totales', 'Ventes conclues '],
+                y = ['Total des transactions', 'Ventes totales', 'Ventes finalisées'],
                 x = [kpis['total_deals'], kpis['total_sales'], kpis['total_sales_won']],
                 textinfo = "value+percent initial"))
             fig_funnel.update_layout(title_text = "Entonnoir de ventes")
             st.plotly_chart(fig_funnel)
         
         with col2:
-            labels = ['Ventes conclues ', 'Ventes perdues', 'En cours']
+            labels = ['Ventes finalisées', 'Ventes perdues', 'En cours']
             values = [kpis['total_sales_won'], kpis['total_sales_lost'], 
                       kpis['total_deals'] - kpis['total_sales_won'] - kpis['total_sales_lost']]
             fig_pie = go.Figure(data=[go.Pie(labels=labels, values=values, hole=.3)])
@@ -294,6 +270,7 @@ def display_product_kpis(product_name):
     else:
         st.error(f"Aucune donnée disponible pour le produit '{product_name}'.")
 
+
 # Fonction principale
 def main():
     # Obtention de la liste des produits
@@ -301,12 +278,12 @@ def main():
     
     if products:
         # Ajout d'une option par défaut au début de la liste
-        options = ["Vue globale"] + products
+        options = ["Sélectionner un produit"] + products
         
         # Affichage d'un selectbox dans la sidebar avec une valeur par défaut
-        selected_option = st.sidebar.selectbox("Vous pouvez consulter la performance d'un produit spécifique (veuillez sélectionner le produit)", options)
+        selected_option = st.sidebar.selectbox("Vous pouvez analyser un seul produit", options)
 
-        if selected_option == "Vue globale":
+        if selected_option == "Sélectionner un produit":
             # Chargement et affichage des données globales
             kpi_data = load_global_data()
             if kpi_data:

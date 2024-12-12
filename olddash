@@ -11,14 +11,14 @@
 #
 # 1. Visualisation des ventes par secteur et par mois
 # Titre
-st.html('<h2 style="color: #C1F17E;">Visualisation des Ventes par Secteur et par Mois</h2>')
+st.html('<h2 style="color: #00ED9A;">Visualisation des Ventes par Secteur et par Mois</h2>')
 
 # Créer les colonnes pour mettre les graphiques côte à côte
 col1, col2 = st.columns(2)
 
 with col1:
     # Graphique des ventes par secteur
-    st.html('<h4 style="color: #C1F17E;">VENTES PAR SECTEUR</h4>')
+    st.html('<h4 style="color: #00ED9A;">VENTES PAR SECTEUR</h4>')
 
     # Créer un DataFrame à partir des données sur les produits par secteur
     sector_data = pd.DataFrame({
@@ -35,7 +35,7 @@ with col1:
 
 with col2:
     # Graphique des revenus par secteur
-    st.html('<h3 style="color: #C1F17E;">Revenu par Secteur</h3>')
+    st.html('<h3 style="color: #00ED9A;">Revenu par Secteur</h3>')
 
     # Créer un DataFrame pour les revenus par secteur
     revenue_sector_data = pd.DataFrame({
@@ -52,7 +52,7 @@ with col2:
 
 # 2. Visualisation des revenus par secteur et par mois
 # Titre de la section
-st.html('<h2 style="color: #C1F17E;">Répartition des Ventes et Revenus par Mois</h2>')
+st.html('<h2 style="color: #00ED9A;">Répartition des Ventes et Revenus par Mois</h2>')
 
 # Vérification que les données des revenus par mois sont présentes
 if "revenue_per_month" in kpi_data and "sales_per_month" in kpi_data:
@@ -93,7 +93,7 @@ else:
 
 # 3. Visualisation des ventes et revenus par statut
 # Titre de la section
-st.html('<h2 style="color: #C1F17E;">Répartition des Ventes et Revenus par Statut</h2>')
+st.html('<h2 style="color: #00ED9A;">Répartition des Ventes et Revenus par Statut</h2>')
 
 # Création du DataFrame pour les ventes par statut (Won, Prospecting, Engaging, Lost)
 sales_status_data = pd.DataFrame({
